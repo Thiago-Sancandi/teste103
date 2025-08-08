@@ -1,75 +1,76 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>ScappeDemonn</title>
   <style>
     body { margin: 0; overflow: hidden; background: black; }
     canvas { display: block; }
-    #startButton, #difficulty {
+    #ui {
       position: absolute;
       top: 20px;
       left: 20px;
       z-index: 10;
-      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      font-family: sans-serif;
+    }
+    #startButton, #difficulty {
+      background: rgba(0, 0, 0, 0.8);
       color: white;
       padding: 10px;
       border: none;
-      font-family: sans-serif;
+      margin-top: 10px;
       cursor: pointer;
     }
-    #difficulty { top: 60px; }
   </style>
 </head>
 <body>
-  <button id="startButton">Clique para começar</button>
-  <select id="difficulty">
-    <option value="0.01">Fácil</option>
-    <option value="0.03">Médio</option>
-    <option value="0.06">Difícil</option>
-  </select>
+  <div id="ui">
+    <button id="startButton">Clique para começar</button><br />
+    <select id="difficulty">
+      <option value="0.01">Fácil</option>
+      <option value="0.03">Médio</option>
+      <option value="0.06">Difícil</option>
+    </select>
+  </div>
 
-  <!-- Bibliotecas do THREE.js -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/controls/PointerLockControls.js"></script>
-
   <script>
     let scene, camera, renderer, controls;
-    let velocity = new THREE.Vector3();
-    let speed = 400.0;
-    let monster, monsterSpeed = 0.01;
     let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-    const walls = [];
+    let velocity = new THREE.Vector3();
+    let speed = 200;
+    let monster, monsterSpeed = 0.01;
+    let walls = [];
 
-    document.getElementById('difficulty').addEventListener('change', e => {
+    // Dificuldade
+    const difficultySelect = document.getElementById('difficulty');
+    difficultySelect.addEventListener('change', (e) => {
       monsterSpeed = parseFloat(e.target.value);
     });
 
-    document.getElementById('startButton').addEventListener('click', () => {
-      controls.lock();
-    });
-
     function createWall(x, z) {
-      const wallGeo = new THREE.BoxGeometry(10, 30, 10);
-      const wallMat = new THREE.MeshBasicMaterial({ color: 0x3333ff });
-      const wall = new THREE.Mesh(wallGeo, wallMat);
+      const geometry = new THREE.BoxGeometry(10, 30, 10);
+      const material = new THREE.MeshBasicMaterial({ color: 0x4444ff });
+      const wall = new THREE.Mesh(geometry, material);
       wall.position.set(x, 15, z);
-      wall.userData.solid = true;
       scene.add(wall);
       walls.push(wall);
     }
 
     function checkCollision(position) {
-      for (let wall of walls) {
-        const dist = wall.position.distanceTo(position);
-        if (dist < 10) return true;
+      for (const wall of walls) {
+        if (wall.position.distanceTo(position) < 8) {
+          return true;
+        }
       }
       return false;
     }
 
     function init() {
       scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 2000);
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
       renderer = new THREE.WebGLRenderer();
       renderer.setSize(window.innerWidth, window.innerHeight);
       document.body.appendChild(renderer.domElement);
@@ -77,52 +78,68 @@
       controls = new THREE.PointerLockControls(camera, document.body);
       scene.add(controls.getObject());
 
-      // Iluminação
-      const ambient = new THREE.AmbientLight(0x404040);
-      const pointLight = new THREE.PointLight(0xffffff, 1, 1000);
-      pointLight.position.set(0, 200, 0);
-      scene.add(ambient);
-      scene.add(pointLight);
+      const startButton = document.getElementById('startButton');
+      startButton.addEventListener('click', () => {
+        controls.lock();
+      });
 
-      // Piso
-      const floorGeo = new THREE.PlaneGeometry(2000, 2000);
+      controls.addEventListener('lock', () => {
+        document.getElementById('ui').style.display = 'none';
+      });
+
+      controls.addEventListener('unlock', () => {
+        document.getElementById('ui').style.display = 'block';
+      });
+
+      const light = new THREE.HemisphereLight(0xffffff, 0x444444);
+      light.position.set(0, 200, 0);
+      scene.add(light);
+
+      const floorGeo = new THREE.PlaneGeometry(1000, 1000);
       const floorMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
       const floor = new THREE.Mesh(floorGeo, floorMat);
       floor.rotation.x = -Math.PI / 2;
       scene.add(floor);
 
       // Labirinto maior
-      for (let x = -400; x <= 400; x += 20) {
-        for (let z = -400; z <= 400; z += 20) {
-          if (Math.random() > 0.8 || x === -400 || x === 400 || z === -400 || z === 400) {
+      for (let x = -200; x <= 200; x += 20) {
+        for (let z = -200; z <= 200; z += 20) {
+          if (Math.random() > 0.7 || x === -200 || x === 200 || z === -200 || z === 200) {
             createWall(x, z);
           }
         }
       }
 
       // Monstro
-      const monsterGeo = new THREE.BoxGeometry(10, 20, 10);
-      const monsterMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-      monster = new THREE.Mesh(monsterGeo, monsterMat);
+      const monGeo = new THREE.BoxGeometry(10, 20, 10);
+      const monMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+      monster = new THREE.Mesh(monGeo, monMat);
       monster.position.set(100, 10, 100);
       scene.add(monster);
 
-      // Controles do jogador
-      document.addEventListener('keydown', e => {
+      document.addEventListener('keydown', (e) => {
         switch (e.code) {
-          case 'KeyW': case 'ArrowUp': moveForward = true; break;
-          case 'KeyA': case 'ArrowLeft': moveLeft = true; break;
-          case 'KeyS': case 'ArrowDown': moveBackward = true; break;
-          case 'KeyD': case 'ArrowRight': moveRight = true; break;
+          case 'KeyW':
+          case 'ArrowUp': moveForward = true; break;
+          case 'KeyS':
+          case 'ArrowDown': moveBackward = true; break;
+          case 'KeyA':
+          case 'ArrowLeft': moveLeft = true; break;
+          case 'KeyD':
+          case 'ArrowRight': moveRight = true; break;
         }
       });
 
-      document.addEventListener('keyup', e => {
+      document.addEventListener('keyup', (e) => {
         switch (e.code) {
-          case 'KeyW': case 'ArrowUp': moveForward = false; break;
-          case 'KeyA': case 'ArrowLeft': moveLeft = false; break;
-          case 'KeyS': case 'ArrowDown': moveBackward = false; break;
-          case 'KeyD': case 'ArrowRight': moveRight = false; break;
+          case 'KeyW':
+          case 'ArrowUp': moveForward = false; break;
+          case 'KeyS':
+          case 'ArrowDown': moveBackward = false; break;
+          case 'KeyA':
+          case 'ArrowLeft': moveLeft = false; break;
+          case 'KeyD':
+          case 'ArrowRight': moveRight = false; break;
         }
       });
     }
@@ -138,16 +155,16 @@
       if (moveRight) velocity.x += speed * delta;
 
       const direction = velocity.clone().normalize();
-      const newPosition = controls.getObject().position.clone().add(direction.multiplyScalar(delta * 5));
-      if (!checkCollision(newPosition)) {
+      const newPos = controls.getObject().position.clone().add(direction.multiplyScalar(delta * 4));
+      if (!checkCollision(newPos)) {
         controls.moveRight(velocity.x * delta);
         controls.moveForward(velocity.z * delta);
       }
 
-      // Movimento do monstro
+      // Monstro persegue se estiver perto
       const playerPos = controls.getObject().position;
       const dist = monster.position.distanceTo(playerPos);
-      if (dist < 150) {
+      if (dist < 100) {
         const dir = playerPos.clone().sub(monster.position).normalize().multiplyScalar(monsterSpeed * 100);
         const future = monster.position.clone().add(dir);
         if (!checkCollision(future)) {
